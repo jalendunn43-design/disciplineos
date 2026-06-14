@@ -5,6 +5,8 @@ import { ProgressBar } from "@/components/progress-bar";
 import { useDiscipline } from "@/components/discipline-state";
 import { MissionCard } from "@/components/morning-check-in-view";
 import { StreakPanel } from "@/components/streak-panel";
+import { DisciplineScoreCard } from "@/components/discipline-score-card";
+import { StreakPressureCard } from "@/components/streak-pressure-card";
 
 const statCopy = {
   score: "Daily Score",
@@ -14,6 +16,7 @@ const statCopy = {
 
 export function DashboardView() {
   const {
+    profile,
     dailyScore,
     currentStreak,
     level,
@@ -25,12 +28,13 @@ export function DashboardView() {
     habits,
     categories,
     todaysMission,
-    streakStatus
+    streakStatus,
+    disciplineScore
   } = useDiscipline();
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-200">
             Dashboard
@@ -66,7 +70,58 @@ export function DashboardView() {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-8 grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
+        <article className="premium-card relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] via-slate-950/75 to-cyan-400/8 p-5 shadow-2xl shadow-black/20 sm:p-6">
+          <div className="absolute -right-16 -top-20 h-44 w-44 rounded-full bg-teal-300/15 blur-3xl" />
+          <div className="relative">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-teal-100/70">
+              Identity
+            </p>
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-white">
+              {profile.name.trim() || "Jalen"}
+            </h2>
+            <p className="mt-2 text-lg font-bold text-cyan-100">
+              Level {level} {profile.identity.trim() || "Discipline Builder"}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-3xl font-black text-white">
+                  {currentStreak}
+                </p>
+                <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                  day streak
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-3xl font-black text-white">{xp}</p>
+                <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+                  total XP
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/settings"
+              className="mt-5 inline-flex rounded-lg border border-white/10 px-4 py-2 text-sm font-bold text-slate-300 transition hover:border-teal-300/30 hover:bg-teal-300/10 hover:text-white"
+            >
+              Edit Profile
+            </Link>
+          </div>
+        </article>
+
+        <StreakPressureCard
+          currentStreak={currentStreak}
+          completedCount={completedCount}
+          dailyHabitsCount={dailyHabits.length}
+          streak={streakStatus}
+          disciplineScore={disciplineScore}
+        />
+      </div>
+
+      <div className="mb-8">
+        <DisciplineScoreCard score={disciplineScore} />
+      </div>
+
+      <div className="mb-8">
         {todaysMission ? (
           <MissionCard
             priority={todaysMission.priority}
@@ -126,7 +181,7 @@ export function DashboardView() {
         <StreakPanel streak={streakStatus} />
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
+      <div className="premium-card mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-6">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-white">XP Progress</h2>
@@ -152,7 +207,7 @@ export function DashboardView() {
           {categories.map((category) => (
             <article
               key={category.name}
-              className="rounded-2xl border border-white/10 bg-slate-950/65 p-5"
+              className="premium-card rounded-2xl border border-white/10 bg-slate-950/65 p-5 transition hover:-translate-y-0.5 hover:border-teal-300/20 hover:bg-slate-950/85"
             >
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-white">{category.name}</h3>
@@ -167,7 +222,7 @@ export function DashboardView() {
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className={`h-full rounded-full bg-gradient-to-r ${category.tone}`}
+                  className={`h-full rounded-full bg-gradient-to-r ${category.tone} transition-all duration-700`}
                   style={{ width: `${category.score}%` }}
                 />
               </div>
@@ -189,11 +244,13 @@ function StatCard({
   note: string;
 }) {
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10">
+    <article className="premium-card rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10 transition hover:-translate-y-0.5 hover:border-teal-300/20">
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
         {label}
       </p>
-      <p className="mt-4 text-4xl font-black text-white">{value}</p>
+      <p className="mt-4 text-5xl font-black tracking-tight text-white">
+        {value}
+      </p>
       <p className="mt-2 text-sm text-slate-400">{note}</p>
     </article>
   );

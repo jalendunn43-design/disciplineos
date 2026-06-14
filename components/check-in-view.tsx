@@ -33,6 +33,7 @@ export function CheckInView() {
     level,
     completedCount,
     streakStatus,
+    disciplineScore,
     soundEnabled
   } = useDiscipline();
   const [xpPopups, setXpPopups] = useState<XpPopup[]>([]);
@@ -133,12 +134,16 @@ export function CheckInView() {
         </p>
 
         <div
-          className={`mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition duration-500 ${
+          className={`premium-card mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition duration-500 ${
             scoreGlow ? "completion-score-glow" : ""
           }`}
         >
           <div className="grid grid-cols-2 gap-4">
-            <Metric label="Score" value={`${dailyScore}/100`} />
+            <Metric
+              label="Score"
+              value={`${dailyScore}/100`}
+              pulse={scoreGlow}
+            />
             <Metric label="Level" value={`${level}`} />
             <Metric label="XP" value={`${xp}`} />
             <Metric
@@ -160,6 +165,12 @@ export function CheckInView() {
         {completionMessage ? (
           <div className="completion-message mt-4 rounded-xl border border-teal-300/20 bg-teal-300/10 px-4 py-3 text-sm font-bold text-teal-100">
             {completionMessage}
+          </div>
+        ) : null}
+
+        {disciplineScore.dangerMessage ? (
+          <div className="danger-pulse mt-4 rounded-xl border border-rose-300/25 bg-rose-500/10 px-4 py-3 text-sm font-bold leading-6 text-rose-100">
+            {disciplineScore.dangerMessage}
           </div>
         ) : null}
       </aside>
@@ -289,13 +300,27 @@ function Confetti() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  pulse = false
+}: {
+  label: string;
+  value: string;
+  pulse?: boolean;
+}) {
   return (
     <div className="rounded-xl border border-white/10 bg-slate-950/80 p-4">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+      <p
+        className={`mt-2 text-3xl font-black text-white ${
+          pulse ? "score-number-pop" : ""
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

@@ -79,6 +79,22 @@ export type StreakStatus = {
   nextMilestone: StreakMilestone | null;
 };
 
+export type UserProfile = {
+  name: string;
+  identity: string;
+};
+
+export type DisciplineScore = {
+  score: number;
+  completedPoints: number;
+  missedPenalty: number;
+  streakBonus: number;
+  readinessBonus: number;
+  label: string;
+  isDanger: boolean;
+  dangerMessage: string | null;
+};
+
 const defaultHabits: Habit[] = [
   {
     id: "gym",
@@ -157,6 +173,7 @@ export const streakMilestones: StreakMilestone[] = [
 ];
 
 type DisciplineContextValue = {
+  profile: UserProfile;
   habits: Habit[];
   dailyHabits: Habit[];
   checkedHabitIds: string[];
@@ -174,8 +191,10 @@ type DisciplineContextValue = {
   updateHabit: (id: string, habit: HabitInput) => void;
   deleteHabit: (id: string) => void;
   resetHabits: () => void;
+  updateProfile: (profile: UserProfile) => void;
   toggleHabit: (id: string) => void;
   resetToday: () => void;
+  disciplineScore: DisciplineScore;
   dailyScore: number;
   currentStreak: number;
   level: number;
@@ -194,8 +213,13 @@ const checkInHistoryStorageKey = "disciplineos.checkin-history.v1";
 const morningStorageKey = "disciplineos.morning.v1";
 const streakStorageKey = "disciplineos.streak.v1";
 const soundStorageKey = "disciplineos.sound.v1";
+const profileStorageKey = "disciplineos.profile.v1";
 const baseXp = 180;
 const xpForLevel = 300;
+const defaultProfile: UserProfile = {
+  name: "Jalen",
+  identity: "Discipline Builder"
+};
 
 function getTodayKey() {
   const today = new Date();
@@ -529,6 +553,27 @@ function readStoredSoundEnabled() {
   return window.localStorage.getItem(soundStorageKey) === "true";
 }
 
+function readStoredProfile() {
+  const saved = window.localStorage.getItem(profileStorageKey);
+
+  if (!saved) {
+    return defaultProfile;
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Partial<UserProfile>;
+    const name = String(parsed.name || defaultProfile.name).trim();
+    const identity = String(parsed.identity || defaultProfile.identity).trim();
+
+    return {
+      name: name || defaultProfile.name,
+      identity: identity || defaultProfile.identity
+    };
+  } catch {
+    return defaultProfile;
+  }
+}
+
 function countConsecutiveDates(dateSet: Set<string>, anchorDateKey: string) {
   let count = 0;
   let cursor = anchorDateKey;
@@ -595,7 +640,70 @@ function getStreakStatus(streakDates: string[]): StreakStatus {
   };
 }
 
+function getDisciplineScore({
+  dailyScore,
+  completedCount,
+  dailyHabitsCount,
+  streak,
+  morningEntry
+}: {
+  dailyScore: number;
+  completedCount: number;
+  dailyHabitsCount: number;
+  streak: StreakStatus;
+  morningEntry: MorningEntry | null;
+}): DisciplineScore {
+  const missedCount = Math.max(0, dailyHabitsCount - completedCount);
+  const completedPoints =
+    dailyHabitsCount === 0
+      ? 0
+      : Math.round((completedCount / dailyHabitsCount) * 70);
+  const missedPenalty = missedCount * 5;
+  const streakBonus = Math.min(15, Math.floor(streak.current / 3) * 3);
+  const readinessBonus = morningEntry
+    ? Math.min(
+        15,
+        Math.round(
+          ((morningEntry.sleepQuality +
+            morningEntry.mood +
+            morningEntry.energyLevel) /
+            3) *
+            1.5
+        )
+      )
+    : 0;
+  const score = Math.min(
+    100,
+    Math.max(0, completedPoints + streakBonus + readinessBonus - missedPenalty)
+  );
+  const isDanger =
+    dailyScore < 50 ||
+    (dailyHabitsCount > 0 && missedCount >= Math.ceil(dailyHabitsCount / 2));
+  const label =
+    score >= 85
+      ? "Identity locked"
+      : score >= 70
+        ? "Pressure handled"
+        : score >= 50
+          ? "Needs protection"
+          : "Recovery required";
+
+  return {
+    score,
+    completedPoints,
+    missedPenalty,
+    streakBonus,
+    readinessBonus,
+    label,
+    isDanger,
+    dangerMessage: isDanger
+      ? "WARNING: Your streak is at risk. Recovery move: complete one small habit now."
+      : null
+  };
+}
+
 export function DisciplineProvider({ children }: { children: ReactNode }) {
+  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [habits, setHabits] = useState<Habit[]>(defaultHabits);
   const [checkedHabitIds, setCheckedHabitIds] = useState<string[]>([]);
   const [checkInHistory, setCheckInHistory] = useState<Record<string, string[]>>(
@@ -609,6 +717,7 @@ export function DisciplineProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setProfile(readStoredProfile());
     setHabits(readStoredHabits());
     setCheckedHabitIds(readStoredCheckIn());
     setCheckInHistory(readStoredCheckInHistory());
@@ -617,6 +726,12 @@ export function DisciplineProvider({ children }: { children: ReactNode }) {
     setSoundEnabled(readStoredSoundEnabled());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (hydrated) {
+      window.localStorage.setItem(profileStorageKey, JSON.stringify(profile));
+    }
+  }, [hydrated, profile]);
 
   useEffect(() => {
     if (hydrated) {
@@ -748,9 +863,27 @@ export function DisciplineProvider({ children }: { children: ReactNode }) {
     () => getStreakStatus(streakDates),
     [streakDates]
   );
+  const disciplineScore = useMemo(
+    () =>
+      getDisciplineScore({
+        dailyScore,
+        completedCount,
+        dailyHabitsCount: dailyHabits.length,
+        streak: streakStatus,
+        morningEntry: todaysMorningEntry
+      }),
+    [
+      completedCount,
+      dailyHabits.length,
+      dailyScore,
+      streakStatus,
+      todaysMorningEntry
+    ]
+  );
 
   const value = useMemo<DisciplineContextValue>(
     () => ({
+      profile,
       habits,
       dailyHabits,
       checkedHabitIds: activeCheckedHabitIds,
@@ -763,6 +896,12 @@ export function DisciplineProvider({ children }: { children: ReactNode }) {
       streakDates,
       soundEnabled,
       setSoundEnabled,
+      updateProfile: (nextProfile) => {
+        setProfile({
+          name: nextProfile.name,
+          identity: nextProfile.identity
+        });
+      },
       saveMorningEntry: (entry) => {
         const input = {
           sleepQuality: clampRating(entry.sleepQuality),
@@ -836,6 +975,7 @@ export function DisciplineProvider({ children }: { children: ReactNode }) {
           current.filter((dateKey) => dateKey !== todayKey)
         );
       },
+      disciplineScore,
       dailyScore,
       currentStreak: streakStatus.current,
       level,
@@ -852,9 +992,11 @@ export function DisciplineProvider({ children }: { children: ReactNode }) {
       completedCount,
       dailyHabits,
       dailyScore,
+      disciplineScore,
       habits,
       level,
       morningEntries,
+      profile,
       soundEnabled,
       streakDates,
       streakStatus,

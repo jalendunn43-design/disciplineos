@@ -22,11 +22,13 @@ const emptyHabit: HabitInput = {
 
 export function SettingsView() {
   const {
+    profile,
     habits,
     addHabit,
     updateHabit,
     deleteHabit,
     resetHabits,
+    updateProfile,
     soundEnabled,
     setSoundEnabled
   } = useDiscipline();
@@ -67,6 +69,38 @@ export function SettingsView() {
           Reset Defaults
         </button>
       </div>
+
+      <section className="mb-6 rounded-2xl border border-white/10 bg-gradient-to-br from-teal-300/10 via-slate-950/80 to-cyan-400/8 p-4 sm:p-6">
+        <div className="mb-5">
+          <h2 className="text-2xl font-black text-white">Profile Identity</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            This powers the dashboard identity card and stays saved on this
+            device.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Display name">
+            <input
+              value={profile.name}
+              onChange={(event) =>
+                updateProfile({ ...profile, name: event.target.value })
+              }
+              placeholder="Jalen"
+              className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-300/60"
+            />
+          </Field>
+          <Field label="Identity title">
+            <input
+              value={profile.identity}
+              onChange={(event) =>
+                updateProfile({ ...profile, identity: event.target.value })
+              }
+              placeholder="Discipline Builder"
+              className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-teal-300/60"
+            />
+          </Field>
+        </div>
+      </section>
 
       <form
         onSubmit={handleSubmit}

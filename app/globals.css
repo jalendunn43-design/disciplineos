@@ -86,6 +86,35 @@ body {
   animation: streak-boost 1.05s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.premium-card {
+  backdrop-filter: blur(18px);
+}
+
+.premium-card,
+.pressure-card {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.premium-card:hover,
+.pressure-card:hover {
+  transform: translateY(-0.08rem);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.24),
+    0 0 40px rgba(34, 211, 238, 0.08);
+}
+
+.pressure-card {
+  animation: pressure-glow 3.8s ease-in-out infinite alternate;
+}
+
+.danger-pulse {
+  animation: danger-pulse 1.8s ease-in-out infinite alternate;
+}
+
 .completion-score-glow {
   border-color: rgba(45, 212, 191, 0.46);
   box-shadow:
@@ -95,6 +124,10 @@ body {
 
 .completion-message {
   animation: completion-message-in 420ms ease-out both;
+}
+
+.score-number-pop {
+  animation: score-number-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .completion-row {
@@ -248,6 +281,48 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes score-number-pop {
+  0% {
+    transform: translateY(0.25rem) scale(0.96);
+    color: #ccfbf1;
+  }
+
+  52% {
+    transform: translateY(-0.08rem) scale(1.05);
+    color: #ffffff;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pressure-glow {
+  from {
+    box-shadow:
+      0 18px 55px rgba(0, 0, 0, 0.2),
+      0 0 24px rgba(34, 211, 238, 0.06);
+  }
+
+  to {
+    box-shadow:
+      0 20px 65px rgba(0, 0, 0, 0.28),
+      0 0 44px rgba(34, 211, 238, 0.11);
+  }
+}
+
+@keyframes danger-pulse {
+  from {
+    border-color: rgba(253, 164, 175, 0.2);
+    box-shadow: 0 0 0 rgba(244, 63, 94, 0);
+  }
+
+  to {
+    border-color: rgba(253, 164, 175, 0.34);
+    box-shadow: 0 0 28px rgba(244, 63, 94, 0.1);
   }
 }
 

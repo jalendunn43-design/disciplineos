@@ -6,9 +6,11 @@ import type { ReactNode } from "react";
 import {
   useDiscipline,
   type Category,
+  type DisciplineScore,
   type Habit,
   type MorningEntry
 } from "@/components/discipline-state";
+import { DisciplineScoreCard } from "@/components/discipline-score-card";
 
 type CoachResponse = {
   encouragement: string;
@@ -24,17 +26,20 @@ type CoachInput = {
   weakestCategory: Category | null;
   strongestCategory: Category | null;
   morningEntry: MorningEntry | null;
+  disciplineScore: DisciplineScore;
 };
 
 export function AiCoachView() {
   const {
+    profile,
     dailyScore,
     dailyHabits,
     checkedHabitIds,
     currentStreak,
     streakStatus,
     categories,
-    todaysMorningEntry
+    todaysMorningEntry,
+    disciplineScore
   } = useDiscipline();
 
   const completedHabits = useMemo(
@@ -57,7 +62,8 @@ export function AiCoachView() {
     currentStreak,
     weakestCategory,
     strongestCategory,
-    morningEntry: todaysMorningEntry
+    morningEntry: todaysMorningEntry,
+    disciplineScore
   });
   const morningReadiness = todaysMorningEntry
     ? Math.round(
@@ -110,11 +116,15 @@ export function AiCoachView() {
         />
       </div>
 
+      <div className="mt-6">
+        <DisciplineScoreCard score={disciplineScore} compact />
+      </div>
+
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
         <div className="space-y-4">
           <CoachCard
             label="1. Encouragement"
-            title="What is working"
+            title={`For ${profile.name.trim() || "you"}`}
             body={coachResponse.encouragement}
             tone="from-teal-300/18 to-sky-400/8"
           />
@@ -219,16 +229,23 @@ function getDynamicCoachResponse({
   currentStreak,
   weakestCategory,
   strongestCategory,
-  morningEntry
+  morningEntry,
+  disciplineScore
 }: CoachInput): CoachResponse {
   const keyMiss =
     missedHabits.find((habit) => habit.category === weakestCategory?.name) ||
     missedHabits[0] ||
     null;
-  const keyWin = completedHabits[0] || null;
   const weakSpot = weakestCategory?.name || "your lowest category";
   const strongSpot = strongestCategory?.name || "your strongest lane";
   const focus = morningEntry?.mainFocus.trim() || "your main priority";
+  const completedProof =
+    completedHabits.length > 0
+      ? completedHabits
+          .slice(0, 2)
+          .map((habit) => habit.label)
+          .join(" and ")
+      : "no completed habits yet";
   const readiness = morningEntry
     ? Math.round(
         (morningEntry.sleepQuality +
@@ -243,10 +260,10 @@ function getDynamicCoachResponse({
 
   const encouragement =
     dailyScore >= 85
-      ? `You are building trust with yourself. A ${dailyScore}/100 with a ${currentStreak}-day streak says the system is working. Keep stacking quiet wins, especially in ${strongSpot}.`
+      ? `You are building trust with yourself. A ${dailyScore}/100, a ${disciplineScore.score}/100 Discipline Score, and a ${currentStreak}-day streak says your actions are starting to match your identity. Keep stacking quiet wins, especially in ${strongSpot}.`
       : dailyScore >= 60
-        ? `You showed up today. The score is not perfect, but completed reps like ${keyWin?.label || "your checked habits"} keep the identity alive. That matters.`
-        : `You are not behind. Today gave you information. The fact that you are reviewing it instead of ignoring it is the first disciplined move.`;
+        ? `You showed up today. The score is not perfect, but ${completedProof} kept the identity alive. That matters because the streak is still asking to be protected.`
+        : `You are not behind. But today gave you a clear signal: the system needs a smaller, earlier win. Reviewing it instead of ignoring it is the first disciplined move.`;
 
   const statePressure =
     lowSleep
@@ -261,12 +278,12 @@ function getDynamicCoachResponse({
 
   const toughFeedback =
     missedHabits.length === 0
-      ? `Clean board. Good. Now be honest: the next level is not more boxes, it is better attention while doing them. Do not let completion become autopilot.`
-      : `Today showed a pattern: ${keyMiss?.label || weakSpot} got delayed. ${statePressure} That is not a character flaw, but it is a planning problem. If ${weakSpot} keeps slipping, it becomes the ceiling on the whole system.`;
+      ? `Clean board. Good. Now be honest: you said ${focus} mattered, so the next level is not more boxes. It is protecting your best attention for the work that defines the day. Do not let completion become autopilot.`
+      : `You said ${focus} mattered today. ${keyMiss?.label || weakSpot} still slipped. ${statePressure} That means priorities and actions were misaligned for at least one important block. If ${weakSpot} keeps slipping, it becomes the ceiling on the whole system.`;
 
   const improvement =
     missedHabits.length > 0
-      ? `Tomorrow, protect 20 focused minutes for ${keyMiss?.label || weakSpot} before anything else can crowd it out. Put it before messages, errands, and negotiation.`
+      ? `Tomorrow, protect the first 20 focused minutes for ${keyMiss?.label || weakSpot} before distraction wins. Put it before messages, errands, and negotiation.`
       : `Tomorrow, keep the streak boring and repeatable. Start with ${focus}, then add one quality rep in ${weakSpot} before you chase extra work.`;
 
   return {
